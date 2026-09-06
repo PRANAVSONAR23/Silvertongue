@@ -324,3 +324,35 @@ empty.
 an exception. Repeated `am force-stop` during testing (and MIUI's own memory pressure on a 4 GB
 device) produces this state with no stack trace in `logcat -b crash`. Do not assume a code fault
 without a trace.
+
+## Provider fallback
+
+`ParaphraseRepository` retries on a second provider only for `TRANSPORT`, `RATE_LIMITED`,
+`SERVER_ERROR` and `MODEL_UNAVAILABLE`. `NO_KEY`, `BAD_RESPONSE` and `REFUSED` surface immediately.
+
+`ParaphraseRepositoryTest` covers this with fake providers (7 tests): the happy path never touches the
+second provider, each retryable failure falls back, each non-retryable one does not, a keyless
+fallback candidate is skipped, the original error is reported when everything fails, and blank input
+short-circuits before any provider is called.
+
+**Live verification.** Point `GroqProvider.DEFAULT_MODEL` at a nonexistent id, rebuild, and run the
+in-app test field. Expect `SilvertongueRepo: Groq failed, trying Gemini` in logcat and
+*"Answered by Gemini after the selected provider failed"* under the results. Restore the model and
+confirm the log line is gone and the label reads *"Answered by Groq"* — that is the regression check
+that the happy path still makes exactly one request.
+
+Measured on device: with a broken Groq model, `yaar kal meeting hai bhul mat jana` came back from
+Gemini as *"Yaar kal meeting hai, bhool mat jaana."* — Hinglish kept, `kal` preserved, spelling fixed,
+so the fallback provider honours the same language rules as the primary.
+
+### Gemini model IDs go stale fast
+
+Verified against a real key: `gemini-2.0-flash` (what this project originally shipped) does not exist,
+and `gemini-2.5-flash` / `gemini-2.5-flash-lite` return *"no longer available to new users"*. Avoid
+`gemini-3.5-flash` — it is a thinking model and truncates with `finishReason: MAX_TOKENS` at a 400-token
+cap. List what a key can actually reach before changing the model:
+
+```bash
+curl -s "https://generativelanguage.googleapis.com/v1beta/models" \
+  -H "x-goog-api-key: $GEMINI_API_KEY" | python3 -m json.tool | grep '"name"'
+```

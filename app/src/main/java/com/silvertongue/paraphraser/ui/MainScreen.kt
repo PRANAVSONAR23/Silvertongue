@@ -343,6 +343,18 @@ private fun TestSection(
             }
         }
 
+        state.answeredBy?.takeIf { state.suggestions.isNotEmpty() }?.let { provider ->
+            Text(
+                text = if (state.usedFallback) {
+                    "Answered by ${provider.displayName} after the selected provider failed"
+                } else {
+                    "Answered by ${provider.displayName}"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         SelectionContainer {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 state.suggestions.forEach { suggestion ->

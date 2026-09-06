@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.silvertongue.paraphraser.BuildConfig
 import com.silvertongue.paraphraser.paraphrase.ProviderId
+import com.silvertongue.paraphraser.paraphrase.ProviderPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -17,7 +18,7 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 
 data class OverlayPosition(val x: Int, val y: Int)
 
-class SettingsRepository(context: Context) {
+class SettingsRepository(context: Context) : ProviderPreferences {
 
     private val dataStore = context.applicationContext.settingsDataStore
 
@@ -37,6 +38,10 @@ class SettingsRepository(context: Context) {
     fun keyOverride(provider: ProviderId): Flow<String> = dataStore.data.map { preferences ->
         preferences[keyOverrideKey(provider)].orEmpty()
     }
+
+    override suspend fun currentProvider(): ProviderId = activeProvider.first()
+
+    override suspend fun keyFor(provider: ProviderId): String = apiKey(provider)
 
     suspend fun apiKey(provider: ProviderId): String {
         val override = dataStore.data.first()[keyOverrideKey(provider)].orEmpty().trim()

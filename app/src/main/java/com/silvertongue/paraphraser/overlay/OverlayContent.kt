@@ -76,8 +76,9 @@ fun OverlayPanel(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val fallbackProvider = (state as? OverlayUiState.Suggestions)?.fallbackProvider
                     Text(
-                        text = "Rewrites",
+                        text = if (fallbackProvider == null) "Rewrites" else "Rewrites - via $fallbackProvider",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)

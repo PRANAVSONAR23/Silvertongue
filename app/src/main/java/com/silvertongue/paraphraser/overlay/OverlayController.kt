@@ -162,7 +162,12 @@ class OverlayController(
         requestJob = scope.launch {
             val result = AppGraph.paraphraseRepository.paraphrase(rawText)
             uiState = result.fold(
-                onSuccess = { OverlayUiState.Suggestions(it) },
+                onSuccess = { outcome ->
+                    OverlayUiState.Suggestions(
+                        items = outcome.suggestions,
+                        fallbackProvider = outcome.provider.displayName.takeIf { outcome.usedFallback }
+                    )
+                },
                 onFailure = { OverlayUiState.Failed(it.message ?: "Could not rewrite that") }
             )
         }

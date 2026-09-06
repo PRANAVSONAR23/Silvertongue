@@ -1,32 +1,63 @@
 package com.silvertongue.paraphraser.paraphrase
 
-import com.silvertongue.paraphraser.data.SettingsRepository
-import kotlinx.coroutines.flow.first
+import android.util.Log
 
-class ParaphraseRepository(private val settings: SettingsRepository) {
+data class ParaphraseOutcome(
+    val suggestions: List<String>,
+    val provider: ProviderId,
+    val usedFallback: Boolean
+)
 
-    private val providers: Map<ProviderId, ParaphraseProvider> = mapOf(
-        ProviderId.GROQ to GroqProvider(ApiKeySource { settings.apiKey(ProviderId.GROQ) }),
-        ProviderId.GEMINI to GeminiProvider(ApiKeySource { settings.apiKey(ProviderId.GEMINI) }),
-        ProviderId.ANTHROPIC to AnthropicProvider(ApiKeySource { settings.apiKey(ProviderId.ANTHROPIC) })
-    )
+class ParaphraseRepository(
+    private val preferences: ProviderPreferences,
+    private val providers: Map<ProviderId, ParaphraseProvider> = defaultProviders(preferences)
+) {
 
-    suspend fun paraphrase(rawText: String): Result<List<String>> {
-        val provider = providers.getValue(settings.activeProvider.first())
-        return paraphraseWith(provider, rawText)
-    }
-
-    suspend fun paraphraseWith(providerId: ProviderId, rawText: String): Result<List<String>> =
-        paraphraseWith(providers.getValue(providerId), rawText)
-
-    private suspend fun paraphraseWith(
-        provider: ParaphraseProvider,
-        rawText: String
-    ): Result<List<String>> {
+    suspend fun paraphrase(rawText: String): Result<ParaphraseOutcome> {
         val trimmed = rawText.trim()
         if (trimmed.isEmpty()) {
-            return Result.failure(ParaphraseException("Nothing to rewrite"))
+            return Result.failure(
+                ParaphraseException("Nothing to rewrite", ParaphraseFailure.EMPTY_INPUT)
+            )
         }
-        return runCatching { provider.paraphrase(trimmed) }
+
+        val active = preferences.currentProvider()
+        val primary = attempt(active, trimmed)
+        primary.getOrNull()?.let {
+            return Result.success(ParaphraseOutcome(it, active, usedFallback = false))
+        }
+
+        val primaryError = primary.exceptionOrNull()
+        if (!isWorthFallingBack(primaryError)) return Result.failure(primaryError!!)
+
+        for (candidate in ProviderId.entries) {
+            if (candidate == active) continue
+            if (preferences.keyFor(candidate).isBlank()) continue
+
+            Log.i(TAG, "${active.displayName} failed, trying ${candidate.displayName}")
+            attempt(candidate, trimmed).getOrNull()?.let {
+                return Result.success(ParaphraseOutcome(it, candidate, usedFallback = true))
+            }
+        }
+
+        return Result.failure(primaryError!!)
+    }
+
+    private suspend fun attempt(providerId: ProviderId, text: String): Result<List<String>> =
+        runCatching { providers.getValue(providerId).paraphrase(text) }
+
+    private fun isWorthFallingBack(error: Throwable?): Boolean {
+        val failure = (error as? ParaphraseException)?.failure ?: return false
+        return failure.isWorthTryingAnotherProvider
+    }
+
+    companion object {
+        private const val TAG = "SilvertongueRepo"
+
+        fun defaultProviders(preferences: ProviderPreferences): Map<ProviderId, ParaphraseProvider> = mapOf(
+            ProviderId.GROQ to GroqProvider(ApiKeySource { preferences.keyFor(ProviderId.GROQ) }),
+            ProviderId.GEMINI to GeminiProvider(ApiKeySource { preferences.keyFor(ProviderId.GEMINI) }),
+            ProviderId.ANTHROPIC to AnthropicProvider(ApiKeySource { preferences.keyFor(ProviderId.ANTHROPIC) })
+        )
     }
 }

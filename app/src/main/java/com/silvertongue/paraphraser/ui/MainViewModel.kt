@@ -24,6 +24,8 @@ data class MainUiState(
     val testInput: String = "",
     val isParaphrasing: Boolean = false,
     val suggestions: List<String> = emptyList(),
+    val answeredBy: ProviderId? = null,
+    val usedFallback: Boolean = false,
     val errorMessage: String? = null
 )
 
@@ -102,12 +104,27 @@ class MainViewModel : ViewModel() {
             return
         }
 
-        _uiState.update { it.copy(isParaphrasing = true, errorMessage = null, suggestions = emptyList()) }
+        _uiState.update {
+            it.copy(
+                isParaphrasing = true,
+                errorMessage = null,
+                suggestions = emptyList(),
+                answeredBy = null,
+                usedFallback = false
+            )
+        }
         viewModelScope.launch {
             val result = repository.paraphrase(input)
             _uiState.update { state ->
                 result.fold(
-                    onSuccess = { state.copy(isParaphrasing = false, suggestions = it) },
+                    onSuccess = { outcome ->
+                        state.copy(
+                            isParaphrasing = false,
+                            suggestions = outcome.suggestions,
+                            answeredBy = outcome.provider,
+                            usedFallback = outcome.usedFallback
+                        )
+                    },
                     onFailure = {
                         state.copy(
                             isParaphrasing = false,

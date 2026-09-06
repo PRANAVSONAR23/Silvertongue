@@ -18,6 +18,13 @@ Sideload only. Debug signing only. Not a Play Store app.
 
 Providers shipped: **Groq** (default), **Google Gemini**, and an **Anthropic** implementation.
 
+If the selected provider fails with a *transient* error — no network, rate limited (429), a 5xx, or a
+retired model (404) — the app automatically retries once on another provider that has a key
+configured, and the panel header says **"via Gemini"** so a silent fallback never hides that your
+primary is broken. It does **not** fall back when the key is missing, when the model returns
+unparseable JSON, or when a request is refused: retrying those just doubles the latency for the same
+result. When the primary succeeds, nothing extra happens — same single request as before.
+
 ---
 
 ## 1. Get a free Groq API key
@@ -46,7 +53,12 @@ the best tone preservation of the candidates (it leaves `k` as `k` and keeps emo
 1. Go to <https://aistudio.google.com/apikey>.
 2. **Create API key** → copy it.
 
-The Gemini provider uses `gemini-2.0-flash`.
+The Gemini provider uses **`gemini-3.1-flash-lite`**, chosen by testing every flash model this key can
+reach: `gemini-2.0-flash` does not exist, `gemini-2.5-flash` and `gemini-2.5-flash-lite` return
+*"no longer available to new users"*, and `gemini-3.5-flash` is a thinking model that spends the output
+budget on reasoning and truncates with `MAX_TOKENS` (3 of 4 test messages failed). `3.1-flash-lite`
+returned valid JSON on every attempt at a median of ~1.7 s — slower than Groq, which is fine for a
+fallback.
 
 ---
 

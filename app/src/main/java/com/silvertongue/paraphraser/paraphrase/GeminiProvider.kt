@@ -54,7 +54,7 @@ class GeminiProvider(
             ),
             generationConfig = GeminiGenerationConfig(
                 temperature = 0.4,
-                maxOutputTokens = 400,
+                maxOutputTokens = 1024,
                 responseMimeType = "application/json"
             )
         )
@@ -81,6 +81,6 @@ class GeminiProvider(
 
     companion object {
         private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
-        const val DEFAULT_MODEL = "gemini-2.0-flash"
+        const val DEFAULT_MODEL = "gemini-3.1-flash-lite"
     }
 }
