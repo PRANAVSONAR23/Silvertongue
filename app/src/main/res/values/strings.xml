@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Silvertongue</string>
+    <string name="accessibility_service_label">Silvertongue rewrite overlay</string>
+    <string name="accessibility_service_description">Reads the message you are typing in WhatsApp so the floating button can offer corrected rewrites, and writes your chosen rewrite back into the message box.</string>
+</resources>
