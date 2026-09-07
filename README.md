@@ -8,6 +8,18 @@ Sideload only. Debug signing only. Not a Play Store app.
 
 ---
 
+## Documentation
+
+| Document | Purpose |
+|---|---|
+| **[AI_CONTEXT.md](AI_CONTEXT.md)** | Start here in a new session — what this is, current state, and where everything lives |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layer boundaries, data flow, and why each non-obvious decision was made |
+| [docs/TECHNICAL.md](docs/TECHNICAL.md) | Implementation detail per subsystem |
+| [docs/GLOSSARY.md](docs/GLOSSARY.md) | Android and project vocabulary |
+| [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | Toolchain paths, device specs, adb workflow |
+| [TESTING.md](TESTING.md) | How to verify each build stage, and every bug found on hardware |
+| [CHANGELOG.md](CHANGELOG.md) | What changed and when |
+
 ## What it is made of
 
 | Piece | Where | Job |
